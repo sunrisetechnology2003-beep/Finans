@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0A0A0A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="description" content="VAULT OS — Персональная финансовая операционная система. Умный бюджет, кредитный стратег, цели и накопления.">
+    <title>VAULT OS — Персональная финансовая операционная система</title>
+    <style>
+        :root {
+            --bg: #0A0A0A;
+            --card: #1C1C1E;
+            --card-hover: #252528;
+            --card2: #2C2C2E;
+            --text: #FFFFFF;
+            --sub: #8E8E93;
+            --green: #34C759;
+            --red: #FF453A;
+            --blue: #0A84FF;
+            --purple: #AF52DE;
+            --orange: #FF9F0A;
+            --glass: rgba(255,255,255,0.05);
+            --glass-border: rgba(255,255,255,0.08);
+            --radius: 20px;
+            --radius-sm: 14px;
+            --radius-xs: 10px;
+            --transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000; color: var(--text);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; min-height: 100dvh;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; -webkit-user-select: none;
+            -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+
+        .app {
+            width: 100%; max-width: 430px;
+            height: 100vh; height: 100dvh;
+            display: flex; flex-direction: column;
+            background: var(--bg); position: relative; overflow: hidden;
+            box-shadow: 0 0 80px rgba(100,108,255,0.06);
+        }
+
+        .header {
+            padding: 48px 20px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 10; background: var(--bg); flex-shrink: 0;
+        }
+        .header-title {
+            font-size: 26px; font-weight: 700; letter-spacing: -0.8px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #C0C0C0 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; cursor: default; line-height: 1.2;
+        }
+        .header-actions { display: flex; gap: 8px; }
+        .icon-btn {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: var(--card); border: 1px solid var(--glass-border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; cursor: pointer; transition: var(--transition);
+            color: var(--text); flex-shrink: 0;
+        }
+        .icon-btn:active { transform: scale(0.92); background: var(--card-hover); }
+
+        .content {
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 8px 20px 0; scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+        }
+        .content::-webkit-scrollbar { display: none; }
+        .content-bottom-spacer { height: 120px; flex-shrink: 0; }
+
+        .screen { display: none; animation: fadeSlideIn 0.3s ease; width: 100%; }
+        .screen.active { display: block; }
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .balance-card {
+            background: linear-gradient(145deg, #1C1C1E 0%, #222226 100%);
+            border-radius: 24px; padding: 24px 20px; margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.06); position: relative; overflow: hidden;
+            box-shadow: 0 16px 32px rgba(0,0,0,0.4);
+        }
+        .balance-card::after {
+            content: ""; position: absolute; top: -50px; right: -50px;
+            width: 160px; height: 160px;
+            background: radial-gradient(circle, rgba(100,140,255,0.08) 0%, transparent 70%);
+            border-radius: 50%; pointer-events: none;
+        }
+        .balance-label {
+            font-size: 11px; color: var(--sub); text-transform: uppercase;
+            letter-spacing: 1.5px; margin-bottom: 4px; position: relative; z-index: 1; font-weight: 500;
+        }
+        .balance-amount {
+            font-size: 42px; font-weight: 700; letter-spacing: -1.5px;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1.2);
+            position: relative; z-index: 1; line-height: 1.1;
+        }
+        .balance-details { display: flex; justify-content: space-between; margin-top: 18px; position: relative; z-index: 1; gap: 4px; }
+        .detail-item { text-align: center; flex: 1; min-width: 0; }
+        .detail-value { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; white-space: nowrap; }
+        .detail-value.warning { color: var(--orange); }
+        .detail-value.success { color: var(--green); }
+        .detail-label { font-size: 10px; color: var(--sub); margin-top: 2px; letter-spacing: 0.3px; text-transform: uppercase; font-weight: 500; }
+
+        .safe-banner {
+            border-radius: var(--radius-sm); padding: 14px 16px;
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+            background: rgba(52,199,89,0.06); border: 1px solid rgba(52,199,89,0.15);
+        }
+        .safe-banner.warning-bg { background: rgba(255,159,10,0.06); border-color: rgba(255,159,10,0.15); }
+        .safe-banner.danger-bg { background: rgba(255,69,58,0.06); border-color: rgba(255,69,58,0.15); }
+        .safe-banner.info-bg { background: rgba(10,132,255,0.06); border-color: rgba(10,132,255,0.15); }
+        .safe-text { font-size: 13px; font-weight: 500; color: var(--sub); }
+        .safe-amount { font-weight: 700; font-size: 16px; }
+        .safe-amount.green { color: var(--green); }
+        .safe-amount.orange { color: var(--orange); }
+        .safe-amount.red { color: var(--red); }
+        .safe-amount.blue { color: var(--blue); }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px; }
+        .section-title { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.3; }
+        .section-link { font-size: 13px; color: var(--blue); cursor: pointer; font-weight: 500; padding: 4px 8px; border-radius: 6px; transition: var(--transition); }
+        .section-link:active { background: rgba(10,132,255,0.1); }
+
+        .list-item {
+            background: var(--card); border-radius: var(--radius-sm);
+            padding: 14px 16px; display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; border: 1px solid transparent; transition: var(--transition);
+            cursor: pointer; width: 100%; overflow: hidden; position: relative;
+        }
+        .list-item:active { background: var(--card-hover); transform: scale(0.99); }
+        .list-item.list-item-block { flex-direction: column; align-items: flex-start; gap: 8px; }
+        .list-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; overflow: hidden; }
+        .list-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; background: var(--card2); flex-shrink: 0;
+        }
+        .list-info { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+        .list-name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+        .list-date { font-size: 11px; color: var(--sub); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .list-amount { font-weight: 600; font-size: 14px; text-align: right; flex-shrink: 0; margin-left: 10px; white-space: nowrap; }
+        .list-amount.positive { color: var(--green); }
+        .list-amount.negative { color: var(--red); }
+        .list-amount.pending { color: var(--orange); }
+        .list-delete {
+            color: var(--red); font-size: 14px; margin-left: 8px; flex-shrink: 0;
+            opacity: 0.6; padding: 4px; transition: var(--transition); z-index: 2;
+        }
+        .list-delete:active { opacity: 1; transform: scale(1.2); }
+        .list-delete-top {
+            position: absolute; top: 10px; right: 10px;
+            color: var(--red); font-size: 14px; opacity: 0.6; padding: 4px;
+            transition: var(--transition); z-index: 2; cursor: pointer;
+        }
+        .list-delete-top:active { opacity: 1; transform: scale(1.2); }
+        .list-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+
+        .btn {
+            border: none; padding: 14px 20px; border-radius: var(--radius-sm);
+            font-weight: 600; font-size: 14px; cursor: pointer; transition: var(--transition);
+            width: 100%; text-align: center; letter-spacing: 0.2px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: #FFFFFF; color: #0A0A0A; }
+        .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--glass-border); }
+        .btn-sm { padding: 10px 14px; font-size: 12px; width: auto; border-radius: 20px; white-space: nowrap; font-weight: 500; }
+        .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-row .btn { flex: 1; min-width: 0; }
+
+        .progress-bar { height: 5px; background: var(--card2); border-radius: 10px; overflow: hidden; width: 100%; }
+        .progress-fill { height: 100%; background: var(--blue); border-radius: 10px; transition: width 0.6s ease; }
+        .progress-fill.green { background: var(--green); }
+        .progress-fill.purple { background: var(--purple); }
+        .progress-fill.orange { background: var(--orange); }
+
+        .score-circle {
+            width: 90px; height: 90px; border-radius: 50%; border: 5px solid var(--card2);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 12px; font-size: 28px; font-weight: 700;
+        }
+        .score-circle.good { border-color: var(--green); color: var(--green); }
+        .score-circle.medium { border-color: var(--orange); color: var(--orange); }
+        .score-circle.bad { border-color: var(--red); color: var(--red); }
+        .score-label { text-align: center; color: var(--sub); font-size: 12px; margin-bottom: 16px; }
+
+        .achievement-card {
+            background: var(--card); border-radius: var(--radius-sm);
+            padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+            margin-bottom: 8px; border: 1px solid var(--glass-border); width: 100%;
+        }
+        .achievement-icon { font-size: 32px; flex-shrink: 0; }
+        .achievement-info { flex: 1; min-width: 0; }
+        .achievement-info h4 { font-size: 14px; font-weight: 600; line-height: 1.3; }
+        .achievement-info p { font-size: 11px; color: var(--sub); margin-top: 1px; }
+        .achievement-locked { opacity: 0.35; filter: grayscale(100%); }
+        .achievement-status { font-size: 20px; flex-shrink: 0; }
+
+        .buy-result {
+            text-align: center; padding: 20px 16px; background: var(--card);
+            border-radius: var(--radius-sm); margin-top: 14px; border: 1px solid var(--glass-border);
+        }
+        .buy-result .emoji { font-size: 40px; margin-bottom: 8px; }
+        .buy-result h3 { font-size: 18px; margin-bottom: 4px; font-weight: 600; }
+        .buy-result p { font-size: 13px; color: var(--sub); line-height: 1.4; }
+
+        .empty-state { text-align: center; padding: 28px 16px; color: var(--sub); }
+        .empty-state .empty-icon { font-size: 36px; margin-bottom: 8px; opacity: 0.5; }
+        .empty-state p { font-size: 13px; line-height: 1.5; }
+
+        .info-box {
+            background: rgba(10,132,255,0.08); border: 1px solid rgba(10,132,255,0.15);
+            border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px;
+            font-size: 13px; color: var(--text); line-height: 1.5;
+        }
+        .info-box strong { color: var(--blue); }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 430px;
+            background: rgba(10,10,10,0.9); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: space-around; align-items: flex-start;
+            padding: 8px 0 calc(var(--safe-bottom) + 4px); z-index: 100;
+        }
+        .nav-item {
+            color: var(--sub); font-size: 10px; font-weight: 500; text-align: center;
+            cursor: pointer; transition: var(--transition);
+            display: flex; flex-direction: column; align-items: center;
+            gap: 3px; letter-spacing: 0.2px; padding: 4px 8px; border-radius: 10px;
+        }
+        .nav-item .nav-icon { font-size: 20px; transition: var(--transition); }
+        .nav-item.active { color: #FFFFFF; }
+        .nav-item.active .nav-icon { transform: translateY(-1px); }
+        .nav-item:active { background: rgba(255,255,255,0.03); }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+            animation: fadeIn 0.25s ease; touch-action: none;
+        }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+        @keyframes fadeOut { from { opacity:1; } to { opacity:0; } }
+        .modal-overlay.closing { animation: fadeOut 0.3s ease forwards; }
+
+        .modal-sheet {
+            background: #1C1C1E; width: 100%; max-width: 430px;
+            border-radius: 22px 22px 0 0;
+            padding: 16px 20px calc(20px + var(--safe-bottom));
+            max-height: 85vh; overflow-y: auto;
+            transform: translateY(0);
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+            will-change: transform; touch-action: pan-y;
+        }
+        .modal-sheet.swiping { transition: none; }
+        .modal-sheet.closing { transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.55, 0, 1, 0.45); }
+
+        .modal-handle-area { display: flex; justify-content: center; padding: 4px 0 12px; cursor: grab; touch-action: pan-y; }
+        .modal-handle { width: 36px; height: 5px; background: #55555A; border-radius: 3px; opacity: 0.8; transition: opacity 0.2s, transform 0.2s; }
+        .modal-handle-area:active .modal-handle { opacity: 1; transform: scaleX(1.2); }
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 18px; letter-spacing: -0.3px; }
+
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 12px; color: var(--sub); margin-bottom: 4px; font-weight: 500; letter-spacing: 0.2px; }
+        input, select {
+            width: 100%; background: #2C2C2E; border: 1px solid #3A3A3C;
+            border-radius: 12px; padding: 12px 14px; color: #FFFFFF;
+            font-size: 15px; font-family: inherit; transition: var(--transition);
+            outline: none; -webkit-appearance: none; appearance: none;
+        }
+        input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(10,132,255,0.12); }
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238E8E93' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+        .modal-actions .btn { flex: 1; }
+
+        .toast {
+            position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+            background: #2C2C2E; border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 18px; border-radius: 20px;
+            font-size: 13px; font-weight: 500; z-index: 300;
+            animation: toastIn 0.35s ease, toastOut 0.3s ease 1.8s forwards;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            white-space: nowrap; letter-spacing: 0.2px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        @keyframes toastIn {
+            from { opacity:0; transform: translateX(-50%) translateY(-16px); }
+            to { opacity:1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity:1; }
+            to { opacity:0; transform: translateX(-50%) translateY(-16px); }
+        }
+
+        .text-center { text-align: center; }
+        .text-sub { color: var(--sub); }
+        .text-sm { font-size: 11px; }
+        .mb-2 { margin-bottom: 8px; }
+        .mt-2 { margin-top: 8px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="app" id="app">
+        <div class="header">
+            <div class="header-title" id="headerTitle">VAULT OS</div>
+            <div class="header-actions">
+                <button class="icon-btn" id="btnAddIncome" title="Добавить доход" aria-label="Добавить доход">💸</button>
+                <button class="icon-btn" id="btnAddExpense" title="Добавить расход" aria-label="Добавить расход">➕</button>
+            </div>
+        </div>
+
+        <div class="content" id="appContent"></div>
+        <div class="content-bottom-spacer"></div>
+
+        <div class="bottom-nav" id="bottomNav">
+            <div class="nav-item active" data-screen="dashboard"><span class="nav-icon">🏠</span> Главная</div>
+            <div class="nav-item" data-screen="money"><span class="nav-icon">💰</span> Деньги</div>
+            <div class="nav-item" data-screen="analytics"><span class="nav-icon">📊</span> Аналитика</div>
+            <div class="nav-item" data-screen="goals"><span class="nav-icon">🎯</span> Цели</div>
+            <div class="nav-item" data-screen="achievements"><span class="nav-icon">🏆</span> Успехи</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ==================== DATA STORE ====================
+            const DEFAULT_DATA = {
+                incomes: [
+                    { id: 1, source: 'Зарплата (5 число)', amount: 70000, date: '2026-08-05', category: 'salary', comment: '' },
+                    { id: 2, source: 'Зарплата (20 число)', amount: 70000, date: '2026-08-20', category: 'salary', comment: '' },
+                ],
+                credits: [
+                    {
+                        id: 1, name: 'Кредит авто',
+                        totalDebt: 860000, rate: 0.12, termMonths: 24,
+                        monthlyPayment: 43000, paymentDay: 10,
+                        startDate: '2025-01-10', comment: ''
+                    }
+                ],
+                mandatory: [
+                    { id: 2, name: 'Бензин', amount: 10000, date: '2026-08-07', category: 'transport' },
+                    { id: 3, name: 'Интернет + Связь', amount: 1500, date: '2026-08-15', category: 'utilities' },
+                    { id: 4, name: 'Подписки', amount: 1200, date: '2026-08-12', category: 'subscriptions' },
+                ],
+                expenses: [
+                    { id: 1, amount: 1200, category: '🍔 Еда', date: '2026-08-02', comment: 'Обед' },
+                    { id: 2, amount: 3500, category: '🎮 Развлечения', date: '2026-08-03', comment: 'Кино и ужин' },
+                    { id: 3, amount: 2500, category: '🛒 Покупки', date: '2026-08-01', comment: 'Одежда' },
+                ],
+                goals: [
+                    { id: 1, name: 'Финансовая подушка', target: 300000, current: 50000, icon: '🛡️' },
+                    { id: 2, name: 'Отпуск', target: 150000, current: 30000, icon: '✈️' },
+                    { id: 3, name: 'Новая техника', target: 80000, current: 15000, icon: '💻' },
+                ],
+                achievements: { firstReserve: false, monthControl: false, debt50k: false, firstLevel: true },
+                financialScore: 62,
+                level: 'Контролёр',
+            };
+
+            let DB = null;
+            let currentScreen = 'dashboard';
+
+            function loadDB() {
+                const saved = localStorage.getItem('vaultOS');
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        if (!parsed.credits) parsed.credits = [];
+                        if (!parsed.incomes || !parsed.mandatory || !parsed.expenses || !parsed.goals || !parsed.achievements) {
+                            throw new Error('Incomplete data');
+                        }
+                        DB = parsed;
+                    } catch (e) {
+                        DB = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                        saveDB();
+                    }
+                } else {
+                    DB = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                    saveDB();
+                }
+            }
+
+            function saveDB() {
+                try { localStorage.setItem('vaultOS', JSON.stringify(DB)); } catch (e) { showToast('Ошибка сохранения'); }
+            }
+
+            function getToday() {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            }
+
+            // ==================== CREDIT ENGINE ====================
+            function getNextCreditPaymentDate(paymentDay) {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth();
+                const safeDay = Math.min(paymentDay, 28);
+                let paymentDate = new Date(year, month, safeDay);
+                if (paymentDate < now) {
+                    paymentDate = new Date(year, month + 1, safeDay);
+                }
+                const py = paymentDate.getFullYear();
+                const pm = String(paymentDate.getMonth() + 1).padStart(2, '0');
+                const pd = String(paymentDate.getDate()).padStart(2, '0');
+                return `${py}-${pm}-${pd}`;
+            }
+
+            function getCreditProgress(credit) {
+                const now = new Date();
+                const startDate = new Date(credit.startDate);
+                const totalMonths = credit.termMonths;
+                const monthsPassed = Math.floor((now - startDate) / (30 * 86400000));
+                const monthsPaid = Math.max(0, Math.min(monthsPassed, totalMonths));
+                const remainingDebt = Math.max(0, credit.totalDebt - monthsPaid * credit.monthlyPayment);
+                const remainingMonths = Math.max(0, totalMonths - monthsPaid);
+                const totalInterest = credit.totalDebt * credit.rate * (totalMonths / 12);
+
+                const extraPayment = 5000;
+                const newMonthly = credit.monthlyPayment + extraPayment;
+                const newRemainingMonths = remainingDebt > 0 ? Math.ceil(remainingDebt / newMonthly) : 0;
+                const monthsSaved = Math.max(0, remainingMonths - newRemainingMonths);
+                const interestSaved = Math.round(totalInterest * (monthsSaved / Math.max(1, totalMonths)));
+
+                const endDate = new Date(startDate);
+                endDate.setMonth(endDate.getMonth() + totalMonths);
+                const earlyEndDate = new Date();
+                earlyEndDate.setMonth(earlyEndDate.getMonth() + newRemainingMonths);
+
+                return {
+                    monthsPaid,
+                    remainingDebt,
+                    remainingMonths,
+                    totalInterest,
+                    monthsSavedWithExtra: monthsSaved,
+                    interestSavedWithExtra: interestSaved,
+                    nextPaymentDate: getNextCreditPaymentDate(credit.paymentDay),
+                    endDate: endDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
+                    earlyEndDate: earlyEndDate.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }),
+                    progressPercent: Math.min(100, Math.round((monthsPaid / totalMonths) * 100)),
+                };
+            }
+
+            function getUpcomingCreditPayments() {
+                const today = getToday();
+                return DB.credits.map(credit => {
+                    const progress = getCreditProgress(credit);
+                    return {
+                        id: credit.id,
+                        name: credit.name,
+                        amount: credit.monthlyPayment,
+                        date: progress.nextPaymentDate,
+                        category: 'credit',
+                        isCredit: true,
+                        creditDetails: credit,
+                        progress: progress,
+                    };
+                }).filter(p => p.date >= today && p.progress.remainingDebt > 0)
+                .sort((a, b) => a.date.localeCompare(b.date));
+            }
+
+            // ==================== FINANCE ENGINE ====================
+            function getBudget() {
+                const today = getToday();
+                const sortedIncomes = [...DB.incomes].sort((a, b) => a.date.localeCompare(b.date));
+                const futureSalary = sortedIncomes.find(i => i.date >= today);
+                const pastSalaries = sortedIncomes.filter(i => i.date <= today);
+                const lastSalary = pastSalaries.length > 0 ? pastSalaries[pastSalaries.length - 1] : null;
+                const lastSalaryDate = lastSalary ? lastSalary.date : '2020-01-01';
+
+                const incomeSince = DB.incomes
+                    .filter(i => i.date > lastSalaryDate && i.date <= today)
+                    .reduce((s, i) => s + i.amount, 0);
+                const spent = DB.expenses
+                    .filter(e => e.date > lastSalaryDate)
+                    .reduce((s, e) => s + e.amount, 0);
+                const balance = incomeSince - spent;
+
+                const allMandatory = [
+                    ...DB.mandatory.filter(p => p.date >= today),
+                    ...getUpcomingCreditPayments().map(p => ({ amount: p.amount, date: p.date }))
+                ];
+
+                if (!futureSalary) {
+                    const upcoming = allMandatory.reduce((s, p) => s + p.amount, 0);
+                    return { balance, free: balance - upcoming, safe: 0, days: '—', nextDate: null, upcoming, spent, hasFutureSalary: false };
+                }
+
+                const days = Math.max(1, Math.ceil((new Date(futureSalary.date) - new Date()) / 86400000));
+                const upcoming = allMandatory
+                    .filter(p => p.date >= today && p.date <= futureSalary.date)
+                    .reduce((s, p) => s + p.amount, 0);
+                const free = balance - upcoming;
+                const safe = free > 0 ? free / days : 0;
+
+                return { balance, free, safe, days, nextDate: futureSalary.date, upcoming, spent, hasFutureSalary: true };
+            }
+
+            function getUpcomingPayments() {
+                const today = getToday();
+                const creditPayments = getUpcomingCreditPayments();
+                const regularPayments = DB.mandatory
+                    .filter(p => p.date >= today)
+                    .map(p => ({ ...p, isCredit: false }));
+
+                return [...creditPayments, ...regularPayments]
+                    .sort((a, b) => a.date.localeCompare(b.date));
+            }
+
+            function calculateBuy(cost) {
+                const budget = getBudget();
+                const afterAll = budget.balance - cost - budget.upcoming;
+                if (budget.free >= cost && afterAll >= 0) {
+                    return { status: 'yes', emoji: '✅', title: 'Можно купить',
+                        message: `После покупки останется ${afterAll.toLocaleString()} ₽ свободных средств` };
+                } else if (budget.balance >= cost && afterAll < 0) {
+                    return { status: 'wait', emoji: '⚠️', title: 'Лучше подождать',
+                        message: `После платежей не хватит ${Math.abs(afterAll).toLocaleString()} ₽. Дождитесь зарплаты.` };
+                }
+                return { status: 'no', emoji: '❌', title: 'Сейчас нельзя',
+                    message: 'Недостаточно средств. Накопите или дождитесь дохода.' };
+            }
+
+            function calculateFinancialScore() {
+                const budget = getBudget();
+                let score = 50;
+                if (budget.free > 0) score += 15;
+                if (budget.safe > 1000) score += 10;
+                const totalDebt = DB.credits.reduce((s, c) => s + getCreditProgress(c).remainingDebt, 0);
+                const totalIncome = DB.incomes.reduce((s, i) => s + i.amount, 0);
+                if (totalIncome > 0 && totalDebt < totalIncome * 3) score += 10;
+                const reserveGoal = DB.goals.find(g => g.name.toLowerCase().includes('подушка'));
+                if (reserveGoal && reserveGoal.current > 50000) score += 10;
+                if (DB.expenses.length < 50) score += 5;
+                score = Math.min(100, Math.max(0, Math.round(score)));
+                DB.financialScore = score;
+                saveDB();
+                return score;
+            }
+
+            // ==================== RENDER ENGINE ====================
+            function renderCurrentScreen() {
+                const content = document.getElementById('appContent');
+                if (!content) return;
+                switch (currentScreen) {
+                    case 'dashboard': content.innerHTML = renderDashboard(); break;
+                    case 'money': content.innerHTML = renderMoney(); break;
+                    case 'analytics': content.innerHTML = renderAnalytics(); break;
+                    case 'goals': content.innerHTML = renderGoals(); break;
+                    case 'achievements': content.innerHTML = renderAchievements(); break;
+                    default: content.innerHTML = renderDashboard();
+                }
+                bindScreenEvents();
+                animateBalance();
+            }
+
+            function bindScreenEvents() {
+                document.querySelectorAll('.delete-income').forEach(b => b.addEventListener('click', function(e) {
+                    e.stopPropagation(); deleteIncome(parseInt(this.dataset.id));
+                }));
+                document.querySelectorAll('.delete-expense').forEach(b => b.addEventListener('click', function(e) {
+                    e.stopPropagation(); deleteExpense(parseInt(this.dataset.id));
+                }));
+                document.querySelectorAll('.delete-mandatory').forEach(b => b.addEventListener('click', function(e) {
+                    e.stopPropagation(); deleteMandatory(parseInt(this.dataset.id));
+                }));
+                document.querySelectorAll('.delete-credit').forEach(b => b.addEventListener('click', function(e) {
+                    e.stopPropagation(); deleteCredit(parseInt(this.dataset.id));
+                }));
+                document.querySelectorAll('.goal-clickable').forEach(el => el.addEventListener('click', function() {
+                    updateGoal(parseInt(this.dataset.id));
+                }));
+                document.querySelectorAll('.section-link').forEach(link => link.addEventListener('click', function() {
+                    if (this.dataset.screen) switchScreen(this.dataset.screen);
+                }));
+            }
+
+            function renderDashboard() {
+                const budget = getBudget();
+                const upcomingPayments = getUpcomingPayments().slice(0, 4);
+                const safeVal = budget.safe || 0;
+                const safeClass = safeVal >= 2000 ? 'green' : safeVal >= 500 ? 'orange' : 'red';
+                const bannerClass = safeVal >= 2000 ? '' : safeVal >= 500 ? 'warning-bg' : 'danger-bg';
+                const score = DB.financialScore || 62;
+                const scoreClass = score >= 70 ? 'good' : score >= 40 ? 'medium' : 'bad';
+                const balanceVal = budget.balance || 0;
+                const freeVal = budget.free || 0;
+                const daysVal = budget.days || '—';
+                const safeDisplay = budget.hasFutureSalary ? Math.round(safeVal).toLocaleString() + ' ₽' : '—';
+
+                let upcomingHTML = '';
+                if (upcomingPayments.length > 0) {
+                    upcomingHTML = upcomingPayments.map(p => {
+                        const daysLeft = Math.ceil((new Date(p.date) - new Date()) / 86400000);
+                        const afterPayment = balanceVal - p.amount;
+                        const isCredit = p.isCredit;
+                        const catIcon = isCredit ? '🏦' : (p.category === 'transport' ? '🚗' : p.category === 'utilities' ? '📡' : '📋');
+                        const label = isCredit ? 'Кредит' : 'Платёж';
+                        return `<div class="list-item">
+                            <div class="list-left">
+                                <div class="list-icon">${catIcon}</div>
+                                <div class="list-info">
+                                    <div class="list-name">${esc(p.name)}</div>
+                                    <div class="list-date">${label} через ${daysLeft} дн. · После: ${afterPayment.toLocaleString()} ₽</div>
+                                </div>
+                            </div>
+                            <div class="list-amount negative">−${p.amount.toLocaleString()} ₽</div>
+                        </div>`;
+                    }).join('');
+                } else {
+                    upcomingHTML = '<div class="empty-state"><div class="empty-icon">📅</div><p>Нет предстоящих платежей</p></div>';
+                }
+
+                const lastExpenses = [...DB.expenses].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4);
+                let expensesHTML = lastExpenses.length > 0 ? lastExpenses.map(e =>
+                    `<div class="list-item">
+                        <div class="list-left">
+                            <div class="list-icon">${e.category.slice(0,2)}</div>
+                            <div class="list-info">
+                                <div class="list-name">${esc(e.category)}</div>
+                                <div class="list-date">${e.date} · ${esc(e.comment||'Без описания')}</div>
+                            </div>
+                        </div>
+                        <div class="list-amount negative">−${e.amount.toLocaleString()} ₽</div>
+                        <span class="list-delete delete-expense" data-id="${e.id}">🗑️</span>
+                    </div>`
+                ).join('') : '<div class="empty-state"><div class="empty-icon">📋</div><p>Нет расходов</p></div>';
+
+                const activeCredits = DB.credits.filter(c => getCreditProgress(c).remainingDebt > 0);
+                let creditsSummaryHTML = '';
+                if (activeCredits.length > 0) {
+                    const totalCreditDebt = activeCredits.reduce((s, c) => s + getCreditProgress(c).remainingDebt, 0);
+                    const totalMonthlyPayment = activeCredits.reduce((s, c) => s + c.monthlyPayment, 0);
+                    creditsSummaryHTML = `
+                        <div class="section-header">
+                            <div class="section-title">🏦 Кредиты</div>
+                            <span class="section-link" data-screen="money">Подробнее</span>
+                        </div>
+                        <div class="safe-banner warning-bg">
+                            <span class="safe-text">Общий долг: <strong>${totalCreditDebt.toLocaleString()} ₽</strong></span>
+                            <span class="safe-amount orange">${totalMonthlyPayment.toLocaleString()} ₽/мес</span>
+                        </div>`;
+                }
+
+                return `<div class="screen active" id="screen-dashboard">
+                    <div class="balance-card">
+                        <div class="balance-label">Текущий баланс</div>
+                        <div class="balance-amount" id="balanceAmount">${balanceVal.toLocaleString()} ₽</div>
+                        <div class="balance-details">
+                            <div class="detail-item"><div class="detail-value">${freeVal.toLocaleString()} ₽</div><div class="detail-label">Свободно</div></div>
+                            <div class="detail-item"><div class="detail-value">${daysVal}</div><div class="detail-label">Дней до ЗП</div></div>
+                            <div class="detail-item"><div class="detail-value success">${safeDisplay}</div><div class="detail-label">В день</div></div>
+                        </div>
+                    </div>
+                    <div class="safe-banner ${bannerClass}">
+                        <span class="safe-text">Сегодня безопасно</span>
+                        <span class="safe-amount ${safeClass}">${safeDisplay}</span>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary btn-sm" id="btnQuickExpense">➕ Расход</button>
+                        <button class="btn btn-secondary btn-sm" id="btnQuickIncome">💸 Доход</button>
+                        <button class="btn btn-secondary btn-sm" id="btnBuyCheck">🛒 Могу купить?</button>
+                    </div>
+                    ${creditsSummaryHTML}
+                    <div class="section-header"><div class="section-title">📅 Ближайшие платежи</div><span class="section-link" data-screen="money">Все</span></div>
+                    ${upcomingHTML}
+                    <div class="section-header"><div class="section-title">📋 Последние расходы</div></div>
+                    ${expensesHTML}
+                    <div class="section-header"><div class="section-title">⭐ Финансовый рейтинг</div></div>
+                    <div class="score-circle ${scoreClass}">${score}</div>
+                    <p class="score-label">Уровень: ${DB.level||'Новичок'}</p>
+                    <div class="progress-bar mb-2"><div class="progress-fill ${scoreClass}" style="width:${score}%"></div></div>
+                    <p class="text-center text-sub text-sm">${score>=70?'Отличный контроль!':score>=40?'Есть куда расти':'Требуется внимание'}</p>
+                </div>`;
+            }
+
+            function renderMoney() {
+                const incomesHTML = DB.incomes.length > 0 ? DB.incomes.map(i =>
+                    `<div class="list-item">
+                        <div class="list-left">
+                            <div class="list-icon">💰</div>
+                            <div class="list-info">
+                                <div class="list-name">${esc(i.source)}</div>
+                                <div class="list-date">${i.date} · ${esc(i.comment||i.category)}</div>
+                            </div>
+                        </div>
+                        <div class="list-amount positive">+${i.amount.toLocaleString()} ₽</div>
+                        <span class="list-delete delete-income" data-id="${i.id}">🗑️</span>
+                    </div>`
+                ).join('') : '<div class="empty-state"><div class="empty-icon">💸</div><p>Нет доходов</p></div>';
+
+                let creditsHTML = '';
+                if (DB.credits.length > 0) {
+                    creditsHTML = `
+                        <div class="section-header">
+                            <div class="section-title">🏦 Кредиты (автосписание)</div>
+                            <button class="btn btn-sm btn-secondary" id="btnAddCredit">+ Кредит</button>
+                        </div>
+                        <div class="info-box">
+                            💡 <strong>Добавьте кредит один раз.</strong> Платежи учитываются автоматически каждый месяц в день списания.
+                        </div>
+                        ${DB.credits.map(c => {
+                            const progress = getCreditProgress(c);
+                            const nextDate = progress.nextPaymentDate;
+                            const daysUntilPayment = Math.ceil((new Date(nextDate) - new Date()) / 86400000);
+                            const isActive = progress.remainingDebt > 0;
+                            return `
+                            <div class="list-item list-item-block" style="${isActive ? '' : 'opacity:0.6;'}">
+                                <div class="flex-between">
+                                    <strong>${esc(c.name)}</strong>
+                                    <span style="color:${isActive ? 'var(--orange)' : 'var(--green)'};font-weight:600;">
+                                        ${isActive ? progress.remainingDebt.toLocaleString() + ' ₽' : '✅ Выплачен'}
+                                    </span>
+                                </div>
+                                ${isActive ? `
+                                <div class="flex-between text-sub text-sm">
+                                    <span>Ежемесячно: <strong>${c.monthlyPayment.toLocaleString()} ₽</strong> · ${c.paymentDay}-го числа</span>
+                                </div>
+                                <div class="flex-between text-sub text-sm">
+                                    <span>📅 Следующий платёж: ${nextDate} (через ${daysUntilPayment} дн.)</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill orange" style="width:${progress.progressPercent}%"></div>
+                                </div>
+                                <div class="flex-between text-sub text-sm">
+                                    <span>Выплачено: ${progress.monthsPaid} из ${c.termMonths} мес. (${progress.progressPercent}%)</span>
+                                    <span>Осталось: ${progress.remainingMonths} мес.</span>
+                                </div>
+                                <div class="flex-between text-sub text-sm">
+                                    <span>🏁 Окончание: ${progress.endDate}</span>
+                                </div>
+                                ${progress.monthsSavedWithExtra > 0 ? `
+                                <div class="info-box" style="margin-top:4px;">
+                                    🚀 С доплатой <strong>5 000 ₽/мес</strong>:<br>
+                                    Экономия <strong>${progress.monthsSavedWithExtra} мес.</strong> и ~<strong>${progress.interestSavedWithExtra.toLocaleString()} ₽</strong> на процентах
+                                </div>` : ''}
+                                ` : `
+                                <p class="text-sub text-sm">🎉 Кредит полностью выплачен!</p>
+                                `}
+                                <span class="list-delete-top delete-credit" data-id="${c.id}">🗑️</span>
+                            </div>`;
+                        }).join('')}`;
+                } else {
+                    creditsHTML = `
+                        <div class="section-header">
+                            <div class="section-title">🏦 Кредиты</div>
+                            <button class="btn btn-sm btn-secondary" id="btnAddCredit">+ Добавить</button>
+                        </div>
+                        <div class="empty-state"><div class="empty-icon">🏦</div><p>Нет кредитов. Добавьте кредит один раз — платежи будут автоматическими.</p></div>`;
+                }
+
+                const mandatoryHTML = DB.mandatory.length > 0 ? DB.mandatory.map(p =>
+                    `<div class="list-item">
+                        <div class="list-left">
+                            <div class="list-icon">${p.category==='transport'?'🚗':p.category==='utilities'?'📡':'📋'}</div>
+                            <div class="list-info">
+                                <div class="list-name">${esc(p.name)}</div>
+                                <div class="list-date">${p.date} · ${p.amount.toLocaleString()} ₽</div>
+                            </div>
+                        </div>
+                        <div class="list-amount pending">−${p.amount.toLocaleString()} ₽</div>
+                        <span class="list-delete delete-mandatory" data-id="${p.id}">🗑️</span>
+                    </div>`
+                ).join('') : '<div class="empty-state"><div class="empty-icon">📅</div><p>Нет обязательных платежей</p></div>';
+
+                const expensesAll = [...DB.expenses].sort((a, b) => b.date.localeCompare(a.date));
+                const expensesHTML = expensesAll.length > 0 ? expensesAll.map(e =>
+                    `<div class="list-item">
+                        <div class="list-left">
+                            <div class="list-icon">${e.category.slice(0,2)}</div>
+                            <div class="list-info">
+                                <div class="list-name">${esc(e.category)}</div>
+                                <div class="list-date">${e.date} · ${esc(e.comment||'—')}</div>
+                            </div>
+                        </div>
+                        <div class="list-amount negative">−${e.amount.toLocaleString()} ₽</div>
+                        <span class="list-delete delete-expense" data-id="${e.id}">🗑️</span>
+                    </div>`
+                ).join('') : '<div class="empty-state"><div class="empty-icon">📋</div><p>Нет расходов</p></div>';
+
+                return `<div class="screen active" id="screen-money">
+                    <div class="section-header"><div class="section-title">💸 Доходы</div><button class="btn btn-sm btn-secondary" id="btnAddIncomeScreen">+ Добавить</button></div>
+                    ${incomesHTML}
+                    ${creditsHTML}
+                    <div class="section-header"><div class="section-title">📅 Обязательные платежи</div><button class="btn btn-sm btn-secondary" id="btnAddMandatory">+ Добавить</button></div>
+                    ${mandatoryHTML}
+                    <div class="section-header"><div class="section-title">📋 Все расходы</div><button class="btn btn-sm btn-secondary" id="btnAddExpenseScreen">+ Добавить</button></div>
+                    ${expensesHTML}
+                </div>`;
+            }
+
+            function renderAnalytics() {
+                const budget = getBudget();
+                const score = DB.financialScore || 62;
+                const scoreClass = score >= 70 ? 'good' : score >= 40 ? 'medium' : 'bad';
+                const catTotals = {};
+                let totalSpent = 0;
+                DB.expenses.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + e.amount; totalSpent += e.amount; });
+                const catEntries = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+                const dailyAvg = DB.expenses.length > 0 ? totalSpent / Math.max(1, DB.expenses.length) : 0;
+                const daysVal = typeof budget.days === 'number' ? budget.days : 30;
+                const optimistic = budget.balance - dailyAvg * daysVal * 0.7;
+                const normal = budget.balance - dailyAvg * daysVal;
+                const pessimistic = budget.balance - dailyAvg * daysVal * 1.3;
+                const entertainment = catTotals['🎮 Развлечения'] || 0;
+                let advice = 'Продолжайте в том же духе, финансы под контролем.';
+                if (totalSpent > 0 && entertainment / totalSpent > 0.3) advice = 'Вы тратите более 30% на развлечения. Попробуйте сократить.';
+                else if (budget.safe < 500 && budget.hasFutureSalary) advice = 'Дневной лимит низкий. Будьте осторожны с тратами.';
+                else if (budget.free > 30000) advice = 'Отличная ситуация! Пополните накопления.';
+
+                const activeCredits = DB.credits.filter(c => getCreditProgress(c).remainingDebt > 0);
+                const totalCreditPayment = activeCredits.reduce((s, c) => s + c.monthlyPayment, 0);
+                const totalIncome = DB.incomes.reduce((s, i) => s + i.amount, 0);
+                const creditBurden = totalIncome > 0 ? Math.round(totalCreditPayment / totalIncome * 100) : 0;
+                if (creditBurden > 40) advice = `Кредитная нагрузка ${creditBurden}% — это высокий показатель. Подумайте о досрочном погашении.`;
+
+                const leaksHTML = catEntries.length > 0 ? catEntries.map(([cat, amt]) => {
+                    const pct = totalSpent > 0 ? Math.round(amt / totalSpent * 100) : 0;
+                    return `<div class="list-item list-item-block">
+                        <div class="flex-between"><span>${esc(cat)}</span><span class="list-amount negative">${amt.toLocaleString()} ₽ (${pct}%)</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+                    </div>`;
+                }).join('') : '<div class="empty-state"><p>Нет данных по расходам</p></div>';
+
+                let creditBurdenHTML = '';
+                if (activeCredits.length > 0) {
+                    creditBurdenHTML = `
+                        <div class="section-header"><div class="section-title">🏦 Кредитная нагрузка</div></div>
+                        <div class="list-item list-item-block">
+                            <div class="flex-between"><span>Платежи по кредитам</span><span class="list-amount pending">${totalCreditPayment.toLocaleString()} ₽/мес</span></div>
+                            <div class="flex-between text-sub text-sm"><span>От общего дохода</span><span>${creditBurden}%</span></div>
+                            <div class="progress-bar"><div class="progress-fill ${creditBurden>40?'orange':'green'}" style="width:${Math.min(100,creditBurden)}%"></div></div>
+                            <p class="text-sub text-sm">${creditBurden>40?'⚠️ Высокая нагрузка':'✅ Комфортный уровень'}</p>
+                        </div>`;
+                }
+
+                return `<div class="screen active" id="screen-analytics">
+                    <div class="section-title">⭐ Финансовый рейтинг</div>
+                    <div class="score-circle ${scoreClass}">${score}</div>
+                    <p class="score-label">Уровень: ${DB.level||'Новичок'}</p>
+                    <div class="progress-bar mb-2"><div class="progress-fill ${scoreClass}" style="width:${score}%"></div></div>
+                    <p class="text-center text-sub text-sm">${score>=70?'Отличный контроль!':score>=40?'Есть куда расти':'Требуется внимание'}</p>
+                    ${creditBurdenHTML}
+                    <div class="section-header"><div class="section-title">🔍 Утечки денег</div></div>
+                    ${leaksHTML}
+                    <div class="section-header"><div class="section-title">📈 Прогноз до конца периода</div></div>
+                    <div class="list-item"><span>🌟 Оптимистичный</span><span class="list-amount ${optimistic>0?'positive':'negative'}">${Math.round(optimistic).toLocaleString()} ₽</span></div>
+                    <div class="list-item"><span>📊 Обычный</span><span class="list-amount ${normal>0?'positive':'negative'}">${Math.round(normal).toLocaleString()} ₽</span></div>
+                    <div class="list-item"><span>⚠️ Пессимистичный</span><span class="list-amount ${pessimistic>0?'positive':'negative'}">${Math.round(pessimistic).toLocaleString()} ₽</span></div>
+                    <div class="section-header"><div class="section-title">🤖 AI-советник</div></div>
+                    <div class="safe-banner"><span>${advice}</span></div>
+                </div>`;
+            }
+
+            function renderGoals() {
+                const goalsHTML = DB.goals.length > 0 ? DB.goals.map(g => {
+                    const pct = Math.min(100, Math.round((g.current / Math.max(1, g.target)) * 100));
+                    const monthsLeft = g.current > 0 ? Math.ceil((g.target - g.current) / Math.max(1, g.current / 3)) : '—';
+                    return `<div class="list-item list-item-block goal-clickable" data-id="${g.id}">
+                        <div class="flex-between"><span style="font-weight:600;">${g.icon||'🎯'} ${esc(g.name)}</span><span>${g.current.toLocaleString()} / ${g.target.toLocaleString()} ₽</span></div>
+                        <div class="progress-bar"><div class="progress-fill green" style="width:${pct}%"></div></div>
+                        <div class="flex-between text-sub text-sm"><span>${pct}%</span><span>~${monthsLeft} мес.</span></div>
+                    </div>`;
+                }).join('') : '<div class="empty-state"><div class="empty-icon">🎯</div><p>Нет целей</p></div>';
+
+                const reserve = DB.goals.find(g => g.name.toLowerCase().includes('подушка'));
+                const expenseMonths = new Set(DB.expenses.map(e => e.date.slice(0, 7))).size;
+                const monthlySpend = DB.expenses.length > 0 ? DB.expenses.reduce((s, e) => s + e.amount, 0) / Math.max(1, expenseMonths) : 30000;
+                const needed = Math.round(monthlySpend * 6);
+                const currentReserve = reserve ? reserve.current : 0;
+                const reservePct = Math.min(100, Math.round((currentReserve / Math.max(1, needed)) * 100));
+
+                return `<div class="screen active" id="screen-goals">
+                    <div class="section-header"><div class="section-title">🎯 Цели накоплений</div><button class="btn btn-sm btn-secondary" id="btnAddGoal">+ Цель</button></div>
+                    ${goalsHTML}
+                    <div class="section-header"><div class="section-title">🛡️ Подушка безопасности</div></div>
+                    <div class="list-item list-item-block">
+                        <p class="text-sub text-sm">Рекомендуемый резерв: <strong>${needed.toLocaleString()} ₽</strong> (6 мес.)</p>
+                        <div class="progress-bar"><div class="progress-fill purple" style="width:${reservePct}%"></div></div>
+                        <span class="text-sub text-sm">${reservePct}% — ${currentReserve.toLocaleString()} ₽</span>
+                    </div>
+                </div>`;
+            }
+
+            function renderAchievements() {
+                const a = DB.achievements || {};
+                const achievementsList = [
+                    { key: 'firstReserve', icon: '🛡️', title: 'Первый резерв', desc: 'Накопить первые 10 000 ₽', unlocked: a.firstReserve },
+                    { key: 'monthControl', icon: '📊', title: 'Месяц контроля', desc: 'Держать бюджет под контролем', unlocked: a.monthControl },
+                    { key: 'debt50k', icon: '🏦', title: 'Закрыл 50 000 ₽ долга', desc: 'Выплатить 50 000 ₽ по кредитам', unlocked: a.debt50k },
+                    { key: 'firstLevel', icon: '⭐', title: 'Первый уровень', desc: 'Начать использовать VAULT OS', unlocked: a.firstLevel },
+                ];
+                const levels = ['Новичок', 'Контролёр', 'Стратег', 'Мастер', 'Финансовая свобода'];
+                const currentLevelIdx = levels.indexOf(DB.level || 'Новичок');
+                return `<div class="screen active" id="screen-achievements">
+                    <div class="section-title">🏆 Достижения</div>
+                    ${achievementsList.map(ach=>`<div class="achievement-card ${ach.unlocked?'':'achievement-locked'}"><div class="achievement-icon">${ach.icon}</div><div class="achievement-info"><h4>${ach.title}</h4><p>${ach.desc}</p></div><span class="achievement-status">${ach.unlocked?'✅':'🔒'}</span></div>`).join('')}
+                    <div class="section-header"><div class="section-title">📈 Уровни</div></div>
+                    ${levels.map((lvl,idx)=>`<div class="list-item" style="opacity:${idx<=currentLevelIdx?1:0.35};"><span>${idx<=currentLevelIdx?'✅':'⬜'} ${lvl}</span>${idx===currentLevelIdx?'<span style="color:var(--blue);font-weight:600;">Вы здесь</span>':''}</div>`).join('')}
+                </div>`;
+            }
+
+            function animateBalance() {
+                const el = document.getElementById('balanceAmount');
+                if (!el) return;
+                el.style.transform = 'scale(1.03)';
+                setTimeout(() => el.style.transform = 'scale(1)', 250);
+            }
+
+            function esc(str) {
+                if (!str && str !== 0) return '';
+                const div = document.createElement('div');
+                div.textContent = String(str);
+                return div.innerHTML;
+            }
+
+            // ==================== ACTIONS ====================
+            function deleteIncome(id) {
+                if (confirm('Удалить этот доход?')) { DB.incomes = DB.incomes.filter(i => i.id !== id); saveDB(); renderCurrentScreen(); showToast('Доход удалён'); }
+            }
+            function deleteExpense(id) {
+                if (confirm('Удалить этот расход?')) { DB.expenses = DB.expenses.filter(e => e.id !== id); saveDB(); renderCurrentScreen(); showToast('Расход удалён'); }
+            }
+            function deleteMandatory(id) {
+                if (confirm('Удалить обязательный платёж?')) { DB.mandatory = DB.mandatory.filter(p => p.id !== id); saveDB(); renderCurrentScreen(); showToast('Платёж удалён'); }
+            }
+            function deleteCredit(id) {
+                if (confirm('Удалить кредит? История платежей будет потеряна.')) { DB.credits = DB.credits.filter(c => c.id !== id); saveDB(); renderCurrentScreen(); showToast('Кредит удалён'); }
+            }
+            function updateGoal(id) {
+                const goal = DB.goals.find(g => g.id === id);
+                if (!goal) return;
+                showModal(`Пополнить: ${goal.name}`,
+                    `<p class="text-sub text-sm mb-2">Прогресс: ${goal.current.toLocaleString()} из ${goal.target.toLocaleString()} ₽</p><div class="input-group"><label>Сумма пополнения (₽)</label><input id="gAdd" type="number" placeholder="5000" autofocus></div>`,
+                    () => { const add = +document.getElementById('gAdd').value; if (!add || add <= 0) return; goal.current += add; saveDB(); renderCurrentScreen(); showToast(`+${add.toLocaleString()} ₽`); });
+            }
+
+            // ==================== MODAL WITH SWIPE ====================
+            function showModal(title, contentHTML, onSave) {
+                const existing = document.querySelector('.modal-overlay');
+                if (existing) { existing.classList.add('closing'); setTimeout(() => existing.remove(), 300); }
+                const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+                const sheet = document.createElement('div'); sheet.className = 'modal-sheet';
+                sheet.innerHTML = `<div class="modal-handle-area"><div class="modal-handle"></div></div><div class="modal-title">${title}</div>${contentHTML}<div class="modal-actions"><button class="btn btn-secondary cancel-modal">Отмена</button><button class="btn btn-primary save-modal">Сохранить</button></div>`;
+                overlay.appendChild(sheet); document.body.appendChild(overlay);
+
+                let startY = 0, currentY = 0, isDragging = false, sheetHeight = 0;
+                const getClientY = e => e.touches ? e.touches[0].clientY : e.clientY;
+                function onStart(e) {
+                    const st = sheet.scrollTop;
+                    if (st > 5 && !e.target.closest('.modal-handle-area')) return;
+                    isDragging = true; startY = getClientY(e); sheetHeight = sheet.offsetHeight;
+                    sheet.classList.add('swiping'); sheet.style.transition = 'none';
+                }
+                function onMove(e) {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    currentY = getClientY(e); const delta = currentY - startY;
+                    if (delta < 0) return;
+                    const progress = Math.min(delta / sheetHeight, 1);
+                    sheet.style.transform = `translateY(${delta}px)`;
+                    overlay.style.background = `rgba(0,0,0,${0.75*(1-progress*0.8)})`;
+                }
+                function onEnd() {
+                    if (!isDragging) return;
+                    isDragging = false; sheet.classList.remove('swiping'); sheet.style.transition = '';
+                    const delta = currentY - startY;
+                    const threshold = sheetHeight * 0.25;
+                    const velocity = delta / 150;
+                    if (delta > threshold || velocity > 0.5) {
+                        sheet.classList.add('closing'); overlay.classList.add('closing');
+                        overlay.style.background = 'rgba(0,0,0,0)';
+                        setTimeout(() => overlay.remove(), 300);
+                    } else {
+                        sheet.style.transform = 'translateY(0)';
+                        overlay.style.background = 'rgba(0,0,0,0.75)';
+                    }
+                }
+                sheet.addEventListener('touchstart', onStart, { passive: false });
+                sheet.addEventListener('touchmove', onMove, { passive: false });
+                sheet.addEventListener('touchend', onEnd); sheet.addEventListener('touchcancel', onEnd);
+                const ha = sheet.querySelector('.modal-handle-area');
+                ha.addEventListener('mousedown', onStart);
+                document.addEventListener('mousemove', e => { if (isDragging) onMove(e); });
+                document.addEventListener('mouseup', e => { if (isDragging) onEnd(e); });
+
+                function closeModal(animate = true) {
+                    if (animate) {
+                        sheet.classList.add('closing'); overlay.classList.add('closing');
+                        overlay.style.background = 'rgba(0,0,0,0)';
+                        setTimeout(() => overlay.remove(), 300);
+                    } else { overlay.remove(); }
+                }
+                overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+                overlay.querySelector('.cancel-modal').addEventListener('click', () => closeModal());
+                overlay.querySelector('.save-modal').addEventListener('click', () => { if (onSave) onSave(); closeModal(true); });
+                setTimeout(() => { const fi = sheet.querySelector('input'); if (fi) fi.focus(); }, 400);
+            }
+
+            // ==================== MODALS ====================
+            function openAddIncomeModal() {
+                showModal('Добавить доход',
+                    `<div class="input-group"><label>Источник</label><input id="mfSource" placeholder="Зарплата, подработка..."></div><div class="input-group"><label>Сумма (₽)</label><input id="mfAmount" type="number" placeholder="70000"></div><div class="input-group"><label>Дата</label><input id="mfDate" type="date" value="${getToday()}"></div><div class="input-group"><label>Категория</label><select id="mfCat"><option value="salary">Зарплата</option><option value="freelance">Подработка</option><option value="bonus">Премия</option><option value="refund">Возврат</option><option value="other">Другое</option></select></div>`,
+                    () => {
+                        const source = document.getElementById('mfSource').value || 'Доход';
+                        const amount = +document.getElementById('mfAmount').value;
+                        const date = document.getElementById('mfDate').value;
+                        const category = document.getElementById('mfCat').value;
+                        if (!amount || amount <= 0) { showToast('Введите сумму'); return; }
+                        if (!date) { showToast('Выберите дату'); return; }
+                        DB.incomes.push({ id: Date.now(), source, amount, date, category, comment: '' });
+                        saveDB(); renderCurrentScreen(); showToast('Доход добавлен');
+                    });
+            }
+
+            function openAddExpenseModal() {
+                showModal('Добавить расход',
+                    `<div class="input-group"><label>Сумма (₽)</label><input id="efAmount" type="number" placeholder="1500"></div><div class="input-group"><label>Категория</label><select id="efCat"><option>🍔 Еда</option><option>🚗 Транспорт</option><option>🎮 Развлечения</option><option>🛒 Покупки</option><option>🏠 Дом</option><option>👨‍👩‍👧 Семья</option><option>💰 Накопления</option><option>❓ Другое</option></select></div><div class="input-group"><label>Дата</label><input id="efDate" type="date" value="${getToday()}"></div><div class="input-group"><label>Комментарий</label><input id="efComment" placeholder="На что потратили"></div>`,
+                    () => {
+                        const amount = +document.getElementById('efAmount').value;
+                        const category = document.getElementById('efCat').value;
+                        const date = document.getElementById('efDate').value;
+                        const comment = document.getElementById('efComment').value;
+                        if (!amount || amount <= 0) { showToast('Введите сумму'); return; }
+                        if (!date) { showToast('Выберите дату'); return; }
+                        DB.expenses.push({ id: Date.now(), amount, category, date, comment });
+                        saveDB(); renderCurrentScreen(); showToast('Расход добавлен');
+                    });
+            }
+
+            function openAddMandatoryModal() {
+                showModal('Обязательный платёж',
+                    `<div class="input-group"><label>Название</label><input id="mfName" placeholder="Бензин, интернет..."></div><div class="input-group"><label>Сумма (₽)</label><input id="mfAmountM" type="number" placeholder="10000"></div><div class="input-group"><label>Дата платежа</label><input id="mfDateM" type="date" value="${getToday()}"></div><div class="input-group"><label>Категория</label><select id="mfCatM"><option value="transport">Транспорт</option><option value="utilities">Коммунальные</option><option value="subscriptions">Подписки</option><option value="other">Другое</option></select></div>`,
+                    () => {
+                        const name = document.getElementById('mfName').value || 'Платёж';
+                        const amount = +document.getElementById('mfAmountM').value;
+                        const date = document.getElementById('mfDateM').value;
+                        const category = document.getElementById('mfCatM').value;
+                        if (!amount || amount <= 0) { showToast('Введите сумму'); return; }
+                        if (!date) { showToast('Выберите дату'); return; }
+                        DB.mandatory.push({ id: Date.now(), name, amount, date, category });
+                        saveDB(); renderCurrentScreen(); showToast('Платёж добавлен');
+                    });
+            }
+
+            function openAddCreditModal() {
+                showModal('Добавить кредит',
+                    `<div class="info-box">💡 <strong>Добавьте кредит один раз.</strong> Ежемесячные платежи будут учитываться автоматически в указанный день списания.</div>
+                    <div class="input-group"><label>Название кредита</label><input id="crName" placeholder="Например: Кредит авто"></div>
+                    <div class="input-group"><label>Общая сумма долга (₽)</label><input id="crTotalDebt" type="number" placeholder="860000"></div>
+                    <div class="input-group"><label>Ежемесячный платёж (₽)</label><input id="crMonthly" type="number" placeholder="43000"></div>
+                    <div class="input-group"><label>Процентная ставка (% годовых)</label><input id="crRate" type="number" placeholder="12" step="0.1" value="12"></div>
+                    <div class="input-group"><label>Срок кредита (месяцев)</label><input id="crTerm" type="number" placeholder="24"></div>
+                    <div class="input-group"><label>День списания (1-28 число)</label><input id="crPaymentDay" type="number" placeholder="10" min="1" max="28" value="10"></div>
+                    <div class="input-group"><label>Дата первого платежа</label><input id="crStartDate" type="date" value="${getToday()}"></div>`,
+                    () => {
+                        const name = document.getElementById('crName').value || 'Кредит';
+                        const totalDebt = +document.getElementById('crTotalDebt').value;
+                        const monthlyPayment = +document.getElementById('crMonthly').value;
+                        const rate = (+document.getElementById('crRate').value || 12) / 100;
+                        const termMonths = +document.getElementById('crTerm').value;
+                        const paymentDay = Math.min(28, Math.max(1, +document.getElementById('crPaymentDay').value || 10));
+                        const startDate = document.getElementById('crStartDate').value;
+                        if (!totalDebt || totalDebt <= 0) { showToast('Введите сумму долга'); return; }
+                        if (!monthlyPayment || monthlyPayment <= 0) { showToast('Введите ежемесячный платёж'); return; }
+                        if (!termMonths || termMonths <= 0) { showToast('Введите срок кредита'); return; }
+                        if (!startDate) { showToast('Выберите дату'); return; }
+                        DB.credits.push({ id: Date.now(), name, totalDebt, rate, termMonths, monthlyPayment, paymentDay, startDate, comment: '' });
+                        saveDB(); renderCurrentScreen(); showToast('Кредит добавлен — платежи автоматические');
+                    });
+            }
+
+            function openBuyCheckModal() {
+                showModal('Можно ли купить?',
+                    `<div class="input-group"><label>Название покупки</label><input id="buyName" placeholder="Например: PlayStation игра"></div><div class="input-group"><label>Цена (₽)</label><input id="buyPrice" type="number" placeholder="5000"></div><div id="buyResultPreview"></div>`,
+                    null);
+                setTimeout(() => {
+                    const pi = document.getElementById('buyPrice');
+                    if (pi) pi.addEventListener('input', function() {
+                        const price = +this.value;
+                        const preview = document.getElementById('buyResultPreview');
+                        if (!preview) return;
+                        if (!price || price <= 0) { preview.innerHTML = ''; return; }
+                        const result = calculateBuy(price);
+                        preview.innerHTML = `<div class="buy-result"><div class="emoji">${result.emoji}</div><h3>${result.title}</h3><p>${result.message}</p></div>`;
+                    });
+                }, 100);
+            }
+
+            function openAddGoalModal() {
+                showModal('Новая цель',
+                    `<div class="input-group"><label>Название</label><input id="gName" placeholder="Например: Отпуск"></div><div class="input-group"><label>Целевая сумма (₽)</label><input id="gTarget" type="number" placeholder="100000"></div><div class="input-group"><label>Уже накоплено (₽)</label><input id="gCurrent" type="number" placeholder="0" value="0"></div>`,
+                    () => {
+                        const name = document.getElementById('gName').value || 'Цель';
+                        const target = +document.getElementById('gTarget').value;
+                        const current = +document.getElementById('gCurrent').value || 0;
+                        if (!target || target <= 0) { showToast('Введите сумму'); return; }
+                        DB.goals.push({ id: Date.now(), name, target, current, icon: '🎯' });
+                        saveDB(); renderCurrentScreen(); showToast('Цель создана');
+                    });
+            }
+
+            function showToast(message) {
+                const existing = document.querySelector('.toast'); if (existing) existing.remove();
+                const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = message;
+                document.body.appendChild(toast);
+                setTimeout(() => { if (toast.parentNode) toast.remove(); }, 2200);
+            }
+
+            function switchScreen(screen) {
+                currentScreen = screen;
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                const navItem = document.querySelector(`.nav-item[data-screen="${screen}"]`);
+                if (navItem) navItem.classList.add('active');
+                renderCurrentScreen();
+                document.getElementById('appContent').scrollTop = 0;
+            }
+
+            // ==================== EVENT HANDLERS ====================
+            function setupGlobalHandlers() {
+                document.getElementById('btnAddIncome').addEventListener('click', openAddIncomeModal);
+                document.getElementById('btnAddExpense').addEventListener('click', openAddExpenseModal);
+                document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', function() { switchScreen(this.dataset.screen); }));
+                document.getElementById('appContent').addEventListener('click', function(e) {
+                    const t = e.target;
+                    if (t.id === 'btnQuickExpense') openAddExpenseModal();
+                    if (t.id === 'btnQuickIncome') openAddIncomeModal();
+                    if (t.id === 'btnBuyCheck') openBuyCheckModal();
+                    if (t.id === 'btnAddIncomeScreen') openAddIncomeModal();
+                    if (t.id === 'btnAddExpenseScreen') openAddExpenseModal();
+                    if (t.id === 'btnAddMandatory') openAddMandatoryModal();
+                    if (t.id === 'btnAddCredit') openAddCreditModal();
+                    if (t.id === 'btnAddGoal') openAddGoalModal();
+                    if (t.classList.contains('delete-income')) { e.stopPropagation(); deleteIncome(parseInt(t.dataset.id)); }
+                    if (t.classList.contains('delete-expense')) { e.stopPropagation(); deleteExpense(parseInt(t.dataset.id)); }
+                    if (t.classList.contains('delete-mandatory')) { e.stopPropagation(); deleteMandatory(parseInt(t.dataset.id)); }
+                    if (t.classList.contains('delete-credit')) { e.stopPropagation(); deleteCredit(parseInt(t.dataset.id)); }
+                    const goalEl = t.classList.contains('goal-clickable') ? t : t.closest('.goal-clickable');
+                    if (goalEl) updateGoal(parseInt(goalEl.dataset.id));
+                });
+                document.getElementById('headerTitle').addEventListener('dblclick', function() {
+                    if (confirm('Сбросить все данные к начальным настройкам?')) {
+                        DB = JSON.parse(JSON.stringify(DEFAULT_DATA)); saveDB(); renderCurrentScreen(); showToast('Данные сброшены');
+                    }
+                });
+            }
+
+            function init() { loadDB(); calculateFinancialScore(); setupGlobalHandlers(); renderCurrentScreen(); }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+            else init();
+        })();
+    </script>
+</body>
+</html>
